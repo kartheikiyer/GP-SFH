@@ -23,6 +23,12 @@ except:
 # The way this is set up, you can pass a kernel as an argument
 # to compute the covariance matrix and draw samples from it.
 
+
+
+def ujy_to_flam(data,lam):
+    flam = ((3e-5)*data)/((lam**2.)*(1e6))
+    return flam/1e-19
+
 class simple_GP_sfh():
 
     """
@@ -94,16 +100,20 @@ class simple_GP_sfh():
         rs = slope*np.log10(Mseed) + norm
 
         sfh = A * (np.pi/2) * (sigma) * np.exp( -((timeax-mu)/rs) + (sigma/(2*rs))**2) * ssp.erfc( (sigma/(2*rs)) - ((timeax-mu)/sigma))
-
+        sfh[np.isnan(sfh)] = 1e-10
         return sfh
 
 
-    def get_basesfh(self,sfhtype='const', mstar = None):
+    def get_basesfh(self, sfhtype='const', mstar = None, mstar_seed = None):
 
         if sfhtype == 'const':
             self.basesfh = np.ones_like(self.tarr)* 1.0
         elif sfhtype == 'MS':
-            sfh = self.make_MS_SFH(10**mstar, self.tarr)
+            sfh = self.make_MS_SFH(10**mstar_seed, self.tarr)
+            mtot = (np.trapz(x= self.tarr*1e9, y = sfh)*0.6)
+            sfh = sfh*(10**mstar)/mtot
+            if np.sum(sfh) == 0:
+                print(mstar, mstar_seed)
             self.basesfh = np.log10(sfh)
         else:
             print('unknown basesfh type. set yourself with len of tarr.')
@@ -127,23 +137,47 @@ class simple_GP_sfh():
         return
 
 
-    def get_covariance_matrix(self, **kwargs):
+    def get_covariance_matrix(self, show_prog = True, **kwargs):
         """
         Evaluate covariance matrix with a particular kernel
         """
 
         cov_matrix = np.zeros((len(self.tarr),len(self.tarr)))
-        for i in tqdm(range(len(cov_matrix))):
+
+        if show_prog == True:
+            iterrange = tqdm(range(len(cov_matrix)))
+        else:
+            iterrange = range(len(cov_matrix))
+        for i in iterrange:
             for j in range(len(cov_matrix)):
                     cov_matrix[i,j] = self.kernel(self.tarr[i] - self.tarr[j], **kwargs)
 
         return cov_matrix
 
-    def sample_kernel(self, nsamp = 100, random_seed = 42, force_cov=False, **kwargs):
+    def get_covariance_matrix_timedep(self, show_prog = True, **kwargs):
+        """
+        Evaluate covariance matrix with a particular kernel (NONSTATIONARY)
+        """
+
+        cov_matrix = np.zeros((len(self.tarr),len(self.tarr)))
+        if show_prog == True:
+            iterrange = tqdm(range(len(cov_matrix)))
+        else:
+            iterrange = range(len(cov_matrix))
+        for i in iterrange:
+            for j in range(len(cov_matrix)):
+                    cov_matrix[i,j] = self.kernel(self.tarr[i], self.tarr[j], **kwargs)
+
+        return cov_matrix
+
+    def sample_kernel(self, nsamp = 100, random_seed = 42, force_cov=False, stationary = True, show_prog = True, **kwargs):
 
         mean_array = np.zeros_like(self.tarr)
         if (len(self.covariance_matrix) == 0) or (force_cov == True):
-            self.covariance_matrix = self.get_covariance_matrix(**kwargs)
+            if stationary == True:
+                self.covariance_matrix = self.get_covariance_matrix(show_prog = show_prog, **kwargs)
+            else:
+                self.covariance_matrix = self.get_covariance_matrix_timedep(show_prog = show_prog, **kwargs)
 #         else:
 #             print('using precomputed covariance matrix')
 
@@ -152,28 +186,37 @@ class simple_GP_sfh():
 
         return samples
 
-    def get_spec(self, nsamp):
+    def get_spec(self, nsamp, show_prog = False):
 
         bands = fsps.list_filters()
         filter_wavelengths = [fsps.filters.get_filter(bands[i]).lambda_eff for i in range(len(bands))]
 
         all_lam, all_spec, all_spec_massnorm, all_mstar, all_emline_wav, all_emline_lum, all_emline_lum_massnorm, all_filtmags = [], [], [], [], [], [], [], []
 
-        for i in tqdm(range(nsamp)):
-            specsfh = 10**(self.basesfh+self.samples[i, 0:])
-            self.sp.set_tabular_sfh(self.tarr, specsfh)
-            lam, spec = self.sp.get_spectrum(tage = self.t_univ)
-            mstar = self.sp.stellar_mass
-            bandmags = self.sp.get_mags(tage = self.cosmo.age(self.zval).value, redshift = self.zval, bands = bands)
+        if show_prog == True:
+            iterrange = tqdm(range(nsamp))
+        else:
+            iterrange = range(nsamp)
+        for i in iterrange:
 
-            all_lam.append(lam)
-            all_spec.append(spec)
-            all_spec_massnorm.append(spec/mstar)
-            all_mstar.append(mstar)
-            all_emline_wav.append(self.sp.emline_wavelengths)
-            all_emline_lum.append(self.sp.emline_luminosity)
-            all_emline_lum_massnorm.append(self.sp.emline_luminosity / mstar)
-            all_filtmags.append(bandmags)
+            specsfh = 10**(self.basesfh+self.samples[i, 0:])
+            if np.sum(specsfh) > 0:
+
+                self.sp.set_tabular_sfh(self.tarr, specsfh)
+                lam, spec = self.sp.get_spectrum(tage = self.t_univ)
+                mstar = self.sp.stellar_mass
+                bandmags = self.sp.get_mags(tage = self.cosmo.age(self.zval).value, redshift = self.zval, bands = bands)
+
+                all_lam.append(lam)
+                all_spec.append(spec)
+                all_spec_massnorm.append(spec/mstar)
+                all_mstar.append(mstar)
+                all_emline_wav.append(self.sp.emline_wavelengths)
+                all_emline_lum.append(self.sp.emline_luminosity)
+                all_emline_lum_massnorm.append(self.sp.emline_luminosity / mstar)
+                all_filtmags.append(bandmags)
+            else:
+                print(self.basesfh, self.samples[i,0:])
 
         self.lam = all_lam
         self.spec = all_spec
@@ -190,7 +233,8 @@ class simple_GP_sfh():
 
         return
 
-    def calc_spectral_features(self, massnorm = True):
+
+    def calc_spectral_features_case(self, massnorm = True):
 
         if massnorm == True:
             spectra = self.spec_massnorm
@@ -208,7 +252,86 @@ class simple_GP_sfh():
 
         ha_lambda = 6562 # in angstrom
 
-        for i in tqdm(range(len(spectra))):
+        for i in (range(len(spectra))):
+
+    #         specflam = ujy_to_flam(spectra[i], lam)
+            specflam = spectra[i]
+
+            ha_line_index = np.argmin(np.abs(emline_wavs[i] - ha_lambda))
+            ha_lum = emline_lum[i][ha_line_index]
+            ha_lums.append(ha_lum)
+
+    #         hdelta_mask = (lam > 4041.60) & (lam < 4079.75)
+            hdelta_mask = (lam > 4030.) & (lam < 4082.)
+            #hdelta_cont1_flux = np.trapz(x=lam[hdelta_mask], y = spectra[i][hdelta_mask])
+            hdelta_cont1_flux = np.mean(specflam[hdelta_mask])
+    #         hdelta_mask = (lam > 4128.50) & (lam < 4161.00)
+            hdelta_mask = (lam > 4122.0) & (lam < 4170.00)
+            #hdelta_cont2_flux = np.trapz(x=lam[hdelta_mask], y = spectra[i][hdelta_mask])
+            hdelta_cont2_flux = np.mean(specflam[hdelta_mask])
+            hdelta_cont_flux_av = (hdelta_cont1_flux + hdelta_cont2_flux)/2
+
+            hdelta_mask = (lam > 4083.5) & (lam < 4122.5)
+    #         hdelta_mask = (lam > 4095.5) & (lam < 4109.5)
+            hdelta_emline_fluxes = np.trapz(x=lam[hdelta_mask],
+                                            y = (hdelta_cont_flux_av - specflam[hdelta_mask])/hdelta_cont_flux_av)
+
+    #         hdelta_emline_fluxes = (specflam[hdelta_mask])
+            hdelta_emline_fluxratios = hdelta_emline_fluxes / hdelta_cont_flux_av
+
+    #         hdelta_ew = np.sum(1 - hdelta_emline_fluxratios)
+            hdelta_ew = hdelta_emline_fluxes
+            hdelta_ews.append(hdelta_ew)
+
+    #         if i<10:
+    #             plt.plot(lam[(lam>4030) & (lam<4170)], specflam[(lam>4030) & (lam<4170)])
+    #             plt.plot(lam[hdelta_mask], specflam[hdelta_mask])
+    #             plt.plot(lam[hdelta_mask], np.ones((np.sum(hdelta_mask)))*hdelta_cont_flux_av)
+    #             plt.show()
+    #             print(hdelta_ew)
+
+
+    #         specflam = spectra[i]
+            dn4000_mask1 = (lam>3850) & (lam < 3950)
+            dn4000_flux1 = np.mean(specflam[dn4000_mask1])
+            dn4000_mask2 = (lam>4000) & (lam < 4100)
+            dn4000_flux2 = np.mean(specflam[dn4000_mask2])
+    #         dn4000_mask1 = (lam>3850) & (lam < 3950)
+    #         dn4000_flux1 = np.mean(spectra[i][dn4000_mask1])
+    #         dn4000_mask2 = (lam>4000) & (lam < 4100)
+    #         dn4000_flux2 = np.mean(spectra[i][dn4000_mask2])
+            dn4000 = dn4000_flux2/dn4000_flux1
+            dn4000_vals.append(dn4000)
+
+            self.ha_lums = ha_lums
+            self.hdelta_ews = hdelta_ews
+            self.dn4000_vals = dn4000_vals
+
+        return
+
+    def calc_spectral_features(self, massnorm = True, show_prog = False):
+
+        if massnorm == True:
+            spectra = self.spec_massnorm
+            emline_lum = self.emline_lum_massnorm
+        else:
+            spectra = self.spec
+            emline_lum = self.emline_lum
+
+        lam = self.lam[0]
+        emline_wavs = self.emline_wav
+
+        ha_lums = []
+        hdelta_ews = []
+        dn4000_vals = []
+
+        ha_lambda = 6562 # in angstrom
+
+        if show_prog == True:
+            iterrange = tqdm(range(len(spectra)))
+        else:
+            iterrange = range(len(spectra))
+        for i in iterrange:
 
             ha_line_index = np.argmin(np.abs(emline_wavs[i] - ha_lambda))
             ha_lum = emline_lum[i][ha_line_index]
