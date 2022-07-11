@@ -24,7 +24,11 @@ except:
 # to compute the covariance matrix and draw samples from it.
 
 
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 6be7f04f3ad2eef41cfd99edb94d381294d5a70b
 def ujy_to_flam(data,lam):
     flam = ((3e-5)*data)/((lam**2.)*(1e6))
     return flam/1e-19
@@ -103,7 +107,11 @@ class simple_GP_sfh():
         sfh[np.isnan(sfh)] = 1e-10
         return sfh
 
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 6be7f04f3ad2eef41cfd99edb94d381294d5a70b
     def get_basesfh(self, sfhtype='const', mstar = None, mstar_seed = None):
 
         if sfhtype == 'const':
@@ -143,7 +151,11 @@ class simple_GP_sfh():
         """
 
         cov_matrix = np.zeros((len(self.tarr),len(self.tarr)))
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> 6be7f04f3ad2eef41cfd99edb94d381294d5a70b
         if show_prog == True:
             iterrange = tqdm(range(len(cov_matrix)))
         else:
@@ -198,7 +210,11 @@ class simple_GP_sfh():
         else:
             iterrange = range(nsamp)
         for i in iterrange:
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> 6be7f04f3ad2eef41cfd99edb94d381294d5a70b
             specsfh = 10**(self.basesfh+self.samples[i, 0:])
             if np.sum(specsfh) > 0:
 
@@ -309,6 +325,88 @@ class simple_GP_sfh():
 
         return
 
+<<<<<<< HEAD
+    def calc_spectral_features(self, massnorm = True, show_prog = False):
+=======
+
+    def calc_spectral_features_case(self, massnorm = True):
+>>>>>>> 6be7f04f3ad2eef41cfd99edb94d381294d5a70b
+
+        if massnorm == True:
+            spectra = self.spec_massnorm
+            emline_lum = self.emline_lum_massnorm
+        else:
+            spectra = self.spec
+            emline_lum = self.emline_lum
+
+        lam = self.lam[0]
+        emline_wavs = self.emline_wav
+
+        ha_lums = []
+        hdelta_ews = []
+        dn4000_vals = []
+
+        ha_lambda = 6562 # in angstrom
+
+<<<<<<< HEAD
+=======
+        for i in (range(len(spectra))):
+
+    #         specflam = ujy_to_flam(spectra[i], lam)
+            specflam = spectra[i]
+
+            ha_line_index = np.argmin(np.abs(emline_wavs[i] - ha_lambda))
+            ha_lum = emline_lum[i][ha_line_index]
+            ha_lums.append(ha_lum)
+
+    #         hdelta_mask = (lam > 4041.60) & (lam < 4079.75)
+            hdelta_mask = (lam > 4030.) & (lam < 4082.)
+            #hdelta_cont1_flux = np.trapz(x=lam[hdelta_mask], y = spectra[i][hdelta_mask])
+            hdelta_cont1_flux = np.mean(specflam[hdelta_mask])
+    #         hdelta_mask = (lam > 4128.50) & (lam < 4161.00)
+            hdelta_mask = (lam > 4122.0) & (lam < 4170.00)
+            #hdelta_cont2_flux = np.trapz(x=lam[hdelta_mask], y = spectra[i][hdelta_mask])
+            hdelta_cont2_flux = np.mean(specflam[hdelta_mask])
+            hdelta_cont_flux_av = (hdelta_cont1_flux + hdelta_cont2_flux)/2
+
+            hdelta_mask = (lam > 4083.5) & (lam < 4122.5)
+    #         hdelta_mask = (lam > 4095.5) & (lam < 4109.5)
+            hdelta_emline_fluxes = np.trapz(x=lam[hdelta_mask],
+                                            y = (hdelta_cont_flux_av - specflam[hdelta_mask])/hdelta_cont_flux_av)
+
+    #         hdelta_emline_fluxes = (specflam[hdelta_mask])
+            hdelta_emline_fluxratios = hdelta_emline_fluxes / hdelta_cont_flux_av
+
+    #         hdelta_ew = np.sum(1 - hdelta_emline_fluxratios)
+            hdelta_ew = hdelta_emline_fluxes
+            hdelta_ews.append(hdelta_ew)
+
+    #         if i<10:
+    #             plt.plot(lam[(lam>4030) & (lam<4170)], specflam[(lam>4030) & (lam<4170)])
+    #             plt.plot(lam[hdelta_mask], specflam[hdelta_mask])
+    #             plt.plot(lam[hdelta_mask], np.ones((np.sum(hdelta_mask)))*hdelta_cont_flux_av)
+    #             plt.show()
+    #             print(hdelta_ew)
+
+
+    #         specflam = spectra[i]
+            dn4000_mask1 = (lam>3850) & (lam < 3950)
+            dn4000_flux1 = np.mean(specflam[dn4000_mask1])
+            dn4000_mask2 = (lam>4000) & (lam < 4100)
+            dn4000_flux2 = np.mean(specflam[dn4000_mask2])
+    #         dn4000_mask1 = (lam>3850) & (lam < 3950)
+    #         dn4000_flux1 = np.mean(spectra[i][dn4000_mask1])
+    #         dn4000_mask2 = (lam>4000) & (lam < 4100)
+    #         dn4000_flux2 = np.mean(spectra[i][dn4000_mask2])
+            dn4000 = dn4000_flux2/dn4000_flux1
+            dn4000_vals.append(dn4000)
+
+            self.ha_lums = ha_lums
+            self.hdelta_ews = hdelta_ews
+            self.dn4000_vals = dn4000_vals
+
+        return
+
     def calc_spectral_features(self, massnorm = True, show_prog = False):
 
         if massnorm == True:
@@ -327,6 +425,7 @@ class simple_GP_sfh():
 
         ha_lambda = 6562 # in angstrom
 
+>>>>>>> 6be7f04f3ad2eef41cfd99edb94d381294d5a70b
         if show_prog == True:
             iterrange = tqdm(range(len(spectra)))
         else:
