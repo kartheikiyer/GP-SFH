@@ -116,3 +116,5 @@ dmypy.json
 # folders with large files
 precomputed_kernels/
 validation_tests/
+fsps/
+python-fsps/
