@@ -3,15 +3,17 @@
 
 Gaussian process (GP) based implementation for galaxy star formation histories (SFHs) with physically motivated kernels.
 
-Based on work in Speagle & Iyer et al. (2022; submitted to ApJ).
+Based on work in Iyer & Speagle et al. (2022; submitted to ApJ).
 
-Getting started:
+### Getting started:
 
 The base class for implementing a GP-SFH instance can be initialized using
 
 ```python
 >>> import numpy as np
 >>> from gp_sfh_kernels import *
+
+>>> zval = 0.1
 >>> case = simple_GP_sfh(sp=sp, cosmo=cosmo, zval = zval)
 ```
 
@@ -41,13 +43,20 @@ We are all set up. We can now draw samples from the GP and run them through FSPS
 
 All the figures in the paper can be recreated using code available in the `GP-SFH - all figures.ipynb` colab notebook.
 
+### Usage:
+
+This is not a full-fledged python package, so for basic just copy the `gp_sfh.py` and `gp_sfh_kernels.py` files to your working directory and you're good to go. You might also need to install FSPS & python-FSPS if you don't have that already, and dense basis if you want to implement variable base SFHs using that method.
+
+If you have any problems installing or using GP-SFH, or would like to see any features not currently included, contact us or [raise an issue](https://github.com/kartheikiyer/GP-SFH/issues).
+
+If you use this in your work, please cite Iyer & Speagle 2022 (detailed citation coming soon).
+
 Get in touch!
 - kartheik.iyer@dunlap.utoronto.ca
 - j.speagle@utoronto.ca
 
-Acknowledgements:
-- numpy
-- astropy
-- FSPS
-- dense basis
+### Code acknowledgements:
+
+- Base packages: numpy, astropy, tqdm, time, pickle, importlib
+- Spectral modeling: FSPS, dense basis
 - Plotting: matplotlib, seaborn, corner, chainconsumer
