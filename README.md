@@ -3,6 +3,8 @@
 
 Gaussian process (GP) based implementation for galaxy star formation histories (SFHs) with physically motivated kernels.
 
+[![DOI](https://zenodo.org/badge/401494957.svg)](https://zenodo.org/badge/latestdoi/401494957)
+
 Based on work in [Iyer & Speagle et al. 2022](https://ui.adsabs.harvard.edu/abs/2022arXiv220805938I/abstract); (accepted for publication in ApJ).
 
 ### Getting started:
