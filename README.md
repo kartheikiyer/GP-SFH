@@ -3,7 +3,7 @@
 
 Gaussian process (GP) based implementation for galaxy star formation histories (SFHs) with physically motivated kernels.
 
-Based on work in Iyer & Speagle et al. (2022; submitted to ApJ).
+Based on work in [Iyer & Speagle et al. 2022](https://ui.adsabs.harvard.edu/abs/2022arXiv220805938I/abstract); (accepted for publication in ApJ).
 
 ### Getting started:
 
@@ -33,6 +33,8 @@ Now, to use the `simple_GP_sfh` framework, we need to assign it a kernel, or cov
 >>> case.kernel = extended_regulator_model_kernel_paramlist
 ```
 
+The parameters here correspond to the two normalization factors for the regulator model and the dynamical component of the ACF, and three *effective* timescales corresponding to the inflow, equilibrium, and dynamical processes that affect the overall star formation in galaxies.
+
 We are all set up. We can now draw samples from the GP and run them through FSPS to generate spectra:
 
 ```python
@@ -45,14 +47,14 @@ All the figures in the paper can be recreated using code available in the `GP-SF
 
 ### Usage:
 
-This is not a full-fledged python package, so for basic just copy the `gp_sfh.py` and `gp_sfh_kernels.py` files to your working directory and you're good to go. You might also need to install FSPS & python-FSPS if you don't have that already, and dense basis if you want to implement variable base SFHs using that method.
+This is not a full-fledged python package, so for the basic functionality just copy the `gp_sfh.py` and `gp_sfh_kernels.py` files to your working directory and you're good to go. You might also need to install FSPS & python-FSPS if you don't have that already, and dense basis if you want to implement variable base SFHs using that method.
 
 If you have any problems installing or using GP-SFH, or would like to see any features not currently included, contact us or [raise an issue](https://github.com/kartheikiyer/GP-SFH/issues).
 
-If you use this in your work, please cite Iyer & Speagle 2022 (detailed citation coming soon).
+If you use this in your work, please cite [Iyer & Speagle et al. 2022](https://ui.adsabs.harvard.edu/abs/2022arXiv220805938I/abstract).
 
 Get in touch!
-- kartheik.iyer@dunlap.utoronto.ca
+- kgi2103@columbia.edu
 - j.speagle@utoronto.ca
 
 ### Code acknowledgements:
